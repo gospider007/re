@@ -21,7 +21,7 @@ func (obj *ReData) Group(nums ...int) string {
 func compile(reg any) (*regexp.Regexp, error) {
 	switch val := reg.(type) {
 	case string:
-		return compile(val)
+		return regexp.Compile(val)
 	case *regexp.Regexp:
 		return val, nil
 	default:
