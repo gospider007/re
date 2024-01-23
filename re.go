@@ -1,12 +1,15 @@
 package re
 
-import "regexp"
+import (
+	"errors"
+	"regexp"
+)
 
 type ReData struct {
 	data []string
 }
 
-//返回分组的匹配
+// 返回分组的匹配
 func (obj *ReData) Group(nums ...int) string {
 	var num int
 	if len(nums) > 0 {
@@ -15,12 +18,19 @@ func (obj *ReData) Group(nums ...int) string {
 	return obj.data[num]
 }
 
-func compile(reg string) (*regexp.Regexp, error) {
-	return regexp.Compile(reg)
+func compile(reg any) (*regexp.Regexp, error) {
+	switch val := reg.(type) {
+	case string:
+		return compile(val)
+	case *regexp.Regexp:
+		return val, nil
+	default:
+		return nil, errors.New("reg is not string or *regexp.Regexp")
+	}
 }
 
-//搜索
-func Search(reg string, txt string) *ReData {
+// 搜索
+func Search(reg any, txt string) *ReData {
 	comReg, err := compile(reg)
 	if err != nil {
 		return nil
@@ -32,8 +42,8 @@ func Search(reg string, txt string) *ReData {
 	return &ReData{data: data}
 }
 
-//find 所有
-func FindAll(reg string, txt string) []*ReData {
+// find 所有
+func FindAll(reg any, txt string) []*ReData {
 	datas := []*ReData{}
 	comReg, err := compile(reg)
 	if err != nil {
@@ -46,8 +56,8 @@ func FindAll(reg string, txt string) []*ReData {
 	return datas
 }
 
-//替换匹配
-func Sub(reg string, rep string, txt string) string {
+// 替换匹配
+func Sub(reg any, rep string, txt string) string {
 	comReg, err := compile(reg)
 	if err != nil {
 		return txt
@@ -55,8 +65,8 @@ func Sub(reg string, rep string, txt string) string {
 	return comReg.ReplaceAllString(txt, rep)
 }
 
-//使用方法替换匹配
-func SubFunc(reg string, rep func(string) string, txt string) string {
+// 使用方法替换匹配
+func SubFunc(reg any, rep func(string) string, txt string) string {
 	comReg, err := compile(reg)
 	if err != nil {
 		return txt
@@ -64,8 +74,8 @@ func SubFunc(reg string, rep func(string) string, txt string) string {
 	return comReg.ReplaceAllStringFunc(txt, rep)
 }
 
-//分割
-func Split(reg string, txt string) []string {
+// 分割
+func Split(reg any, txt string) []string {
 	comReg, err := compile(reg)
 	if err != nil {
 		return nil
@@ -73,7 +83,7 @@ func Split(reg string, txt string) []string {
 	return comReg.Split(txt, -1)
 }
 
-//转义
+// 转义
 func Quote(reg string) string {
 	return regexp.QuoteMeta(reg)
 }
