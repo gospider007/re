@@ -3,10 +3,34 @@ package re
 import (
 	"errors"
 	"regexp"
+	"sync"
 )
 
 type ReData struct {
 	data []string
+}
+type cancheData struct {
+	regexs    map[string]*regexp.Regexp
+	regexLock sync.Mutex
+}
+
+func (obj *cancheData) get(reg string) (*regexp.Regexp, bool) {
+	r, ok := obj.regexs[reg]
+	return r, ok
+}
+func (obj *cancheData) set(reg string, r *regexp.Regexp) {
+	obj.regexLock.Lock()
+	defer obj.regexLock.Unlock()
+	obj.regexs[reg] = r
+}
+
+var cacheMap = &cancheData{
+	regexs: make(map[string]*regexp.Regexp),
+}
+var disCache bool
+
+func Cache(val bool) {
+	disCache = !val
 }
 
 // 返回分组的匹配
@@ -21,6 +45,17 @@ func (obj *ReData) Group(nums ...int) string {
 func compile(reg any) (*regexp.Regexp, error) {
 	switch val := reg.(type) {
 	case string:
+		if !disCache {
+			r, ok := cacheMap.get(val)
+			if ok {
+				return r, nil
+			}
+			r, err := regexp.Compile(val)
+			if err == nil {
+				cacheMap.set(val, r)
+			}
+			return r, nil
+		}
 		return regexp.Compile(val)
 	case *regexp.Regexp:
 		return val, nil
