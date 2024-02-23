@@ -11,10 +11,12 @@ type ReData struct {
 }
 type cancheData struct {
 	regexs    map[string]*regexp.Regexp
-	regexLock sync.Mutex
+	regexLock sync.RWMutex
 }
 
 func (obj *cancheData) get(reg string) (*regexp.Regexp, bool) {
+	obj.regexLock.RLock()
+	defer obj.regexLock.RUnlock()
 	r, ok := obj.regexs[reg]
 	return r, ok
 }
