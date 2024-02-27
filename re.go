@@ -1,7 +1,6 @@
 package re
 
 import (
-	"errors"
 	"regexp"
 	"sync"
 )
@@ -44,35 +43,29 @@ func (obj *ReData) Group(nums ...int) string {
 	return obj.data[num]
 }
 
-func compile(reg any) (*regexp.Regexp, error) {
+func compile(reg any) *regexp.Regexp {
 	switch val := reg.(type) {
 	case string:
 		if !disCache {
 			r, ok := cacheMap.get(val)
 			if ok {
-				return r, nil
+				return r
 			}
-			r, err := regexp.Compile(val)
-			if err == nil {
-				cacheMap.set(val, r)
-			}
-			return r, nil
+			r = regexp.MustCompile(val)
+			cacheMap.set(val, r)
+			return r
 		}
-		return regexp.Compile(val)
+		return regexp.MustCompile(val)
 	case *regexp.Regexp:
-		return val, nil
+		return val
 	default:
-		return nil, errors.New("reg is not string or *regexp.Regexp")
+		panic("reg must be string or *regexp.Regexp")
 	}
 }
 
 // 搜索
 func Search(reg any, txt string) *ReData {
-	comReg, err := compile(reg)
-	if err != nil {
-		return nil
-	}
-	data := comReg.FindStringSubmatch(txt)
+	data := compile(reg).FindStringSubmatch(txt)
 	if len(data) == 0 {
 		return nil
 	}
@@ -82,11 +75,7 @@ func Search(reg any, txt string) *ReData {
 // find 所有
 func FindAll(reg any, txt string) []*ReData {
 	datas := []*ReData{}
-	comReg, err := compile(reg)
-	if err != nil {
-		return nil
-	}
-	results := comReg.FindAllStringSubmatch(txt, -1)
+	results := compile(reg).FindAllStringSubmatch(txt, -1)
 	for _, result := range results {
 		datas = append(datas, &ReData{data: result})
 	}
@@ -95,29 +84,17 @@ func FindAll(reg any, txt string) []*ReData {
 
 // 替换匹配
 func Sub(reg any, rep string, txt string) string {
-	comReg, err := compile(reg)
-	if err != nil {
-		return txt
-	}
-	return comReg.ReplaceAllString(txt, rep)
+	return compile(reg).ReplaceAllString(txt, rep)
 }
 
 // 使用方法替换匹配
 func SubFunc(reg any, rep func(string) string, txt string) string {
-	comReg, err := compile(reg)
-	if err != nil {
-		return txt
-	}
-	return comReg.ReplaceAllStringFunc(txt, rep)
+	return compile(reg).ReplaceAllStringFunc(txt, rep)
 }
 
 // 分割
 func Split(reg any, txt string) []string {
-	comReg, err := compile(reg)
-	if err != nil {
-		return nil
-	}
-	return comReg.Split(txt, -1)
+	return compile(reg).Split(txt, -1)
 }
 
 // 转义
