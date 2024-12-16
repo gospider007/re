@@ -1,3 +1,3 @@
 module github.com/gospider007/re
 
-go 1.21.3
+go 1.23.0
