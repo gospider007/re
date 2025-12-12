@@ -1,6 +1,7 @@
 package re
 
 import (
+	"log"
 	"regexp"
 	"sync"
 )
@@ -43,21 +44,30 @@ func (obj *ReData) Group(nums ...int) string {
 	return obj.data[num]
 }
 
-func compile(reg any) *regexp.Regexp {
+func compile(reg any) (*regexp.Regexp, error) {
 	switch val := reg.(type) {
 	case string:
 		if !disCache {
 			r, ok := cacheMap.get(val)
 			if ok {
-				return r
+				return r, nil
 			}
-			r = regexp.MustCompile(val)
-			cacheMap.set(val, r)
-			return r
+			if r, err := regexp.Compile(val); err != nil {
+				log.Printf("compile regexp error: %s", err.Error())
+				return nil, err
+			} else {
+				cacheMap.set(val, r)
+				return r, nil
+			}
 		}
-		return regexp.MustCompile(val)
+		r, err := regexp.Compile(val)
+		if err != nil {
+			log.Printf("compile regexp error: %s", err.Error())
+			return nil, err
+		}
+		return r, err
 	case *regexp.Regexp:
-		return val
+		return val, nil
 	default:
 		panic("reg must be string or *regexp.Regexp")
 	}
@@ -65,7 +75,11 @@ func compile(reg any) *regexp.Regexp {
 
 // 搜索
 func Search(reg any, txt string) *ReData {
-	data := compile(reg).FindStringSubmatch(txt)
+	regex, err := compile(reg)
+	if err != nil {
+		return nil
+	}
+	data := regex.FindStringSubmatch(txt)
 	if len(data) == 0 {
 		return nil
 	}
@@ -75,7 +89,11 @@ func Search(reg any, txt string) *ReData {
 // find 所有
 func FindAll(reg any, txt string) []*ReData {
 	datas := []*ReData{}
-	results := compile(reg).FindAllStringSubmatch(txt, -1)
+	regex, err := compile(reg)
+	if err != nil {
+		return nil
+	}
+	results := regex.FindAllStringSubmatch(txt, -1)
 	for _, result := range results {
 		datas = append(datas, &ReData{data: result})
 	}
@@ -84,17 +102,29 @@ func FindAll(reg any, txt string) []*ReData {
 
 // 替换匹配
 func Sub(reg any, rep string, txt string) string {
-	return compile(reg).ReplaceAllString(txt, rep)
+	regex, err := compile(reg)
+	if err != nil {
+		return txt
+	}
+	return regex.ReplaceAllString(txt, rep)
 }
 
 // 使用方法替换匹配
 func SubFunc(reg any, rep func(string) string, txt string) string {
-	return compile(reg).ReplaceAllStringFunc(txt, rep)
+	regex, err := compile(reg)
+	if err != nil {
+		return txt
+	}
+	return regex.ReplaceAllStringFunc(txt, rep)
 }
 
 // 分割
 func Split(reg any, txt string) []string {
-	return compile(reg).Split(txt, -1)
+	regex, err := compile(reg)
+	if err != nil {
+		return []string{txt}
+	}
+	return regex.Split(txt, -1)
 }
 
 // 转义
